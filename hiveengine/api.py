@@ -102,4 +102,3 @@ class Api(object):
                 result += last_result
                 offset += limit
         return result
-
