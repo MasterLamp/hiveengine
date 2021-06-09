@@ -46,28 +46,45 @@ class Market(list):
         metrics = self.api.find("market", "metrics", query={})
         return metrics
 
-    def get_buy_book(self, symbol, account=None, limit=100, offset=0):
+    def get_buy_book(self, symbol, account=None, limit=100, offset=0, descending=None):
         """Returns the buy book for a given symbol. When account is set,
             the order book from the given account is shown.
         """
         if self.tokens.get_token(symbol) is None:
             raise TokenDoesNotExists("%s does not exists" % symbol)
         if account is None:
-            buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper()}, limit=limit, offset=offset)
+            if descending != None:
+                buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper()}, limit=limit, offset=offset, indexes=[{"index": "priceDec", "descending": descending}])
+            else:
+                buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper()}, limit=limit, offset=offset)
         else:
-            buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper(), "account": account}, limit=limit, offset=offset)
+            if descending != None:
+                buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper(), "account": account}, limit=limit, offset=offset, indexes=[{"index": "priceDec", "descending": descending}])
+            else:
+                buy_book = self.api.find("market", "buyBook", query={"symbol": symbol.upper(), "account": account}, limit=limit, offset=offset)
         return buy_book
 
-    def get_sell_book(self, symbol, account=None, limit=100, offset=0):
+    def get_sell_book(self, symbol, account=None, limit=100, offset=0, descending=None):
         """Returns the sell book for a given symbol. When account is set,
             the order book from the given account is shown.
         """        
         if self.tokens.get_token(symbol) is None:
             raise TokenDoesNotExists("%s does not exists" % symbol)
         if account is None:
-            sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper()}, limit=limit, offset=offset)
+            if descending != None:
+                sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper()}, limit=limit,
+                                         offset=offset, indexes=[{"index": "priceDec", "descending": descending}])
+            else:
+                sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper()}, limit=limit,
+                                         offset=offset)
         else:
-            sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper(), "account": account}, limit=limit, offset=offset)
+            if descending != None:
+                sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper(), "account": account},
+                                         limit=limit, offset=offset,
+                                         indexes=[{"index": "priceDec", "descending": descending}])
+            else:
+                sell_book = self.api.find("market", "sellBook", query={"symbol": symbol.upper(), "account": account},
+                                         limit=limit, offset=offset)
         return sell_book
 
     def get_trades_history(self, symbol, account=None, limit=30, offset=0):
@@ -215,7 +232,7 @@ class Market(list):
         tx = self.blockchain.custom_json(self.ssc_id, json_data, required_auths=[account])
         return tx
 
-    def cancel(self, account, order_type, order_id):
+    def cancel(self, account, order_type, order_ids: list):
         """Cancel buy/sell order.
 
             :param str account: account name
@@ -233,10 +250,17 @@ class Market(list):
                 market = Market(blockchain_instance=stm)
                 market.sell("test", "sell", 12)
         """
-
-        contract_payload = {"type": order_type, "id": order_id}
-        json_data = {"contractName":"market","contractAction":"cancel",
-                     "contractPayload":contract_payload}
+        if len(order_ids) == 1:
+            contract_payload = {"type": order_type, "id": order_ids[0]}
+            json_data = {"contractName":"market","contractAction":"cancel",
+                         "contractPayload":contract_payload}
+        else:
+            json_data = []
+            for each in order_ids:
+                contract_payload = {"type": order_type, "id": each}
+                data = {"contractName": "market", "contractAction": "cancel",
+                             "contractPayload": contract_payload}
+                json_data.append(data)
         assert self.blockchain.is_hive
         tx = self.blockchain.custom_json(self.ssc_id, json_data, required_auths=[account])
         return tx
