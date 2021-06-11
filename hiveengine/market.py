@@ -288,8 +288,6 @@ class Market(list):
         token_in_wallet = wallet.get_token("SWAP.HIVE")
         if token_in_wallet is None:
             raise TokenNotInWallet("%s is not in wallet." % "SWAP.HIVE")
-        if float(token_in_wallet["balance"]) < float(amount) * float(price):
-            raise InsufficientTokenAmount("Only %.3f in wallet" % float(token_in_wallet["balance"]))
 
         token = Token(symbol, api=self.api)
         quant_amount = token.quantize(amount)
@@ -323,8 +321,6 @@ class Market(list):
         token_in_wallet = wallet.get_token(symbol)
         if token_in_wallet is None:
             raise TokenNotInWallet("%s is not in wallet." % symbol)
-        if float(token_in_wallet["balance"]) < float(amount):
-            raise InsufficientTokenAmount("Only %.3f in wallet" % float(token_in_wallet["balance"]))
 
         token = Token(symbol, api=self.api)
         quant_amount = token.quantize(amount)
@@ -365,3 +361,4 @@ class Market(list):
                              "contractPayload": contract_payload}
                 json_data.append(data)
         return json_data
+    
