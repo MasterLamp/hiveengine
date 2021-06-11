@@ -264,3 +264,104 @@ class Market(list):
         assert self.blockchain.is_hive
         tx = self.blockchain.custom_json(self.ssc_id, json_data, required_auths=[account])
         return tx
+
+    def buy_json(self, account, amount, symbol, price):
+        """Buy token for given price.
+
+            :param str account: account name
+            :param float amount: Amount to withdraw
+            :param str symbol: symbol
+            :param float price: price
+
+            Buy example:
+
+            .. code-block:: python
+
+                from hiveengine.market import Market
+                from beem import Steem
+                active_wif = "5xxxx"
+                stm = Steem(keys=[active_wif])
+                market = Market(blockchain_instance=stm)
+                market.buy("test", 1, "BEE", 0.95)
+        """
+        wallet = Wallet(account, api=self.api, blockchain_instance=self.blockchain)
+        token_in_wallet = wallet.get_token("SWAP.HIVE")
+        if token_in_wallet is None:
+            raise TokenNotInWallet("%s is not in wallet." % "SWAP.HIVE")
+        if float(token_in_wallet["balance"]) < float(amount) * float(price):
+            raise InsufficientTokenAmount("Only %.3f in wallet" % float(token_in_wallet["balance"]))
+
+        token = Token(symbol, api=self.api)
+        quant_amount = token.quantize(amount)
+        if quant_amount <= decimal.Decimal("0"):
+            raise InvalidTokenAmount("Amount to transfer is below token precision of %d" % token["precision"])
+        contract_payload = {"symbol": symbol.upper(), "quantity": str(quant_amount), "price": str(price)}
+        json_data = {"contractName": "market", "contractAction": "buy",
+                     "contractPayload": contract_payload}
+        return json_data
+
+    def sell_json(self, account, amount, symbol, price):
+        """Sell token for given price.
+
+            :param str account: account name
+            :param float amount: Amount to withdraw
+            :param str symbol: symbol
+            :param float price: price
+
+            Sell example:
+
+            .. code-block:: python
+
+                from hiveengine.market import Market
+                from beem import Steem
+                active_wif = "5xxxx"
+                stm = Steem(keys=[active_wif])
+                market = Market(blockchain_instance=stm)
+                market.sell("test", 1, "BEE", 0.95)
+        """
+        wallet = Wallet(account, api=self.api, blockchain_instance=self.blockchain)
+        token_in_wallet = wallet.get_token(symbol)
+        if token_in_wallet is None:
+            raise TokenNotInWallet("%s is not in wallet." % symbol)
+        if float(token_in_wallet["balance"]) < float(amount):
+            raise InsufficientTokenAmount("Only %.3f in wallet" % float(token_in_wallet["balance"]))
+
+        token = Token(symbol, api=self.api)
+        quant_amount = token.quantize(amount)
+        if quant_amount <= decimal.Decimal("0"):
+            raise InvalidTokenAmount("Amount to transfer is below token precision of %d" % token["precision"])
+        contract_payload = {"symbol": symbol.upper(), "quantity": str(quant_amount), "price": str(price)}
+        json_data = {"contractName": "market", "contractAction": "sell",
+                     "contractPayload": contract_payload}
+        return json_data
+
+    def cancel_json(self, account, order_type, order_ids: list):
+        """Cancel buy/sell order.
+
+            :param str account: account name
+            :param str order_type: sell or buy
+            :param int order_id: order id
+
+            Cancel example:
+
+            .. code-block:: python
+
+                from hiveengine.market import Market
+                from beem import Steem
+                active_wif = "5xxxx"
+                stm = Steem(keys=[active_wif])
+                market = Market(blockchain_instance=stm)
+                market.sell("test", "sell", 12)
+        """
+        if len(order_ids) == 1:
+            contract_payload = {"type": order_type, "id": order_ids[0]}
+            json_data = {"contractName":"market","contractAction":"cancel",
+                         "contractPayload":contract_payload}
+        else:
+            json_data = []
+            for each in order_ids:
+                contract_payload = {"type": order_type, "id": each}
+                data = {"contractName": "market", "contractAction": "cancel",
+                             "contractPayload": contract_payload}
+                json_data.append(data)
+        return json_data
