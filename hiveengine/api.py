@@ -74,6 +74,13 @@ class Api(object):
         else:
             return ret
 
+    def get_dieselpool(self, tokenpair, limit=1000,offset=0):
+        ret = self.rpc.find({"contract": "distribution", "table": "batches", "query": {"strategy":"pool","active":True,"numTicksLeft":{"$gt":0},"tokenPair":{"$in":[tokenpair]}}}, endpoint="contracts")
+        if isinstance(ret, list) and len(ret) == 1:
+            return ret[0]
+        else:
+            return ret
+
     def find_one(self, contract_name, table_name, query = {}):
         """Get the object that matches the query from the table of the specified contract"""
         ret = self.rpc.findOne({"contract": contract_name, "table": table_name, "query": query}, endpoint="contracts")
