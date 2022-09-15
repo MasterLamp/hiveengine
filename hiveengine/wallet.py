@@ -261,3 +261,9 @@ class Wallet(list):
         else:
             sell_book = self.api.find("market", "sellBook", query={"symbol": symbol, "account": self.account}, limit=limit, offset=offset)
         return sell_book
+
+    def get_diesel_pools(self):
+        """Returns the diesel pools for the wallet account.
+        """
+        diesel_pools = self.api.find("marketpools", "liquidityPositions", query={"account": self.account})
+        return diesel_pools
