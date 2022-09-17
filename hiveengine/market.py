@@ -331,17 +331,13 @@ class Market(list):
                      "contractPayload": contract_payload}
         return json_data
 
-    def cancel_json(self, account, order_type, order_ids: list):
+    def cancel(self, account, order_type, order_id):
         """Cancel buy/sell order.
-
             :param str account: account name
             :param str order_type: sell or buy
             :param int order_id: order id
-
             Cancel example:
-
             .. code-block:: python
-
                 from hiveengine.market import Market
                 from beem import Steem
                 active_wif = "5xxxx"
@@ -349,16 +345,11 @@ class Market(list):
                 market = Market(blockchain_instance=stm)
                 market.sell("test", "sell", 12)
         """
-        if len(order_ids) == 1:
-            contract_payload = {"type": order_type, "id": order_ids[0]}
-            json_data = {"contractName":"market","contractAction":"cancel",
-                         "contractPayload":contract_payload}
-        else:
-            json_data = []
-            for each in order_ids:
-                contract_payload = {"type": order_type, "id": each}
-                data = {"contractName": "market", "contractAction": "cancel",
-                             "contractPayload": contract_payload}
-                json_data.append(data)
-        return json_data
+
+        contract_payload = {"type": order_type, "id": order_id}
+        json_data = {"contractName":"market","contractAction":"cancel",
+                     "contractPayload":contract_payload}
+        assert self.blockchain.is_hive
+        tx = self.blockchain.custom_json(self.ssc_id, json_data, required_auths=[account])
+        return tx
     
